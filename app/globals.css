@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-hover: #121212;
+  --color-border: #1e1e1e;
+  --color-border-hover: #333333;
+  --color-primary: #ededed;
+  --color-secondary: #888888;
+  --color-accent: #ffffff;
+  --color-accent-hover: #e5e5e5;
+  --color-error: #ff453a;
+  --color-error-muted: rgba(255, 69, 58, 0.1);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.table-row-hover {
+  transition: background-color 0.2s ease;
+}
+.table-row-hover:hover {
+  background-color: var(--color-surface-hover);
+}

@@ -1,0 +1,6 @@
+{
+  "name": "CRM | Teacher Panel",
+  "description": "Premium Teacher CRM Panel focused on parent notifications, student/groups lookup, and template-based SMS complaints automation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
