@@ -1,33 +1,34 @@
+// components/ComplaintModal.tsx
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send } from 'lucide-react';
 
-const TEMPLATE_FALLBACKS: Record<string, Record<string, string>> = {
+const TEMPLATES: Record<string, Record<string, string>> = {
   homework: {
-    ru: 'Уважаемый(ая) {ParentName}! Преподаватель {StudentName} сообщает, что домашнее задание было выполнено лишь на {Value}%. Убедительно просим Вас уделить время совместному контролю выполнения домашних заданий, так как это является залогом качественного прогресса в обучении английскому языку.',
-    uz: "Hurmatli {ParentName}! {StudentName} ismli o'quvchimiz uy vazifasini bor-yo‘g‘i {Value}% ga bajarganini ma’lum qilamiz. Sizdan farzandingizning darsga tayyorgarligini alohida nazorat qilishingizni so‘rab qolamiz, chunki uy vazifalarini sifatli bajarish til o‘rganishda yuqori natijaga erishishning asosiy garovidir."
+    ru: 'Уважаемый(ая) {ParentName}! {StudentRef} выполнил(а) домашнее задание лишь на {Value}%. Прошу Вас проконтролировать подготовку к занятиям, так как регулярное выполнение заданий — основа успешного изучения английского языка.',
+    uz: "Hurmatli {ParentName}! {StudentRef} uy vazifasini bor-yo‘g‘i {Value}% ga bajardi. Ingliz tilini muvaffaqiyatli o'zlashtirish uchun uy vazifalarini muntazam bajarish muhimligini inobatga olib, uning darsga tayyorgarligini nazorat qilishingizni so‘rayman."
   },
   lateness: {
-    ru: 'Уважаемый(ая) {ParentName}! Доводим до Вашего сведения, что {StudentName} опоздал(а) на урок на {Value} минут. К сожалению, частые опоздания нарушают общую дисциплину и отвлекают учащихся от учебного процесса. Пожалуйста, содействуйте своевременному прибытию Вашего ребенка на уроки.',
-    uz: "Hurmatli {ParentName}! Farzandingiz {StudentName} darsga {Value} daqiqa kechikib kelganini ma'lum qilamiz. Kechikishlar dars jarayoniga va guruh intizomiga salbiy ta'sir ko'rsatishini inobatga olib, darslarga vaqtida kelishini ta'minlashingizni so'rab qolamiz."
+    ru: 'Уважаемый(ая) {ParentName}! Хочу сообщить, что {StudentRef} опоздал(а) на занятие на {Value} минут. Опоздания нарушают рабочий процесс группы, поэтому прошу Вас проследить за своевременным приходом на уроки.',
+    uz: "Hurmatli {ParentName}! {StudentRef} darsga {Value} daqiqa kechikib kelganini ma'lum qilaman. Kechikishlar dars jarayoniga xalaqit beradi, shu sababli darslarga vaqtida kelishini nazorat qilishingizni so'rayman."
   },
   absence_reason: {
-    ru: 'Уважаемый(ая) {ParentName}! Получили Ваше предупреждение о том, что {StudentName} сегодня пропустит занятие по уважительной причине ({Value}). Спасибо за обратную связь! Будем рады видеть {StudentName} на следующем уроке.',
-    uz: "Hurmatli {ParentName}! Farzandingiz {StudentName} bugungi darsda uzrli sabab ({Value}) tufayli qatnasha olmasligi haqida bergan xabaringizni qabul qildik. Ma’lumot uchun rahmat! Farzandingizni navbatdagi darslarda kutib qolamiz."
+    ru: 'Уважаемый(ая) {ParentName}! Я принял(а) Ваше предупреждение о том, что {StudentRef} пропустит сегодняшнее занятие по причине: ({Value}). Благодарю за своевременное уведомление, ждем на следующем уроке!',
+    uz: "Hurmatli {ParentName}! {StudentRef} bugungi darsda ({Value}) sababli qatnasha olmasligi haqidagi xabaringizni qabul qildim. Ogohlantirganingiz uchun rahmat, navbatdagi darslarda kutib qolamiz!"
   },
   absence_no_reason: {
-    ru: 'Уважаемый(ая) {ParentName}! Обращаем Ваше внимание, что {StudentName} сегодня отсутствует на уроке без предварительного предупреждения. Просим Вас связаться с преподавателем для уточнения обстоятельств.',
-    uz: "Hurmatli {ParentName}! Farzandingiz {StudentName} bugun darsga kelmaganini va bu haqida bizga ogohlantirish berilmaganini ma’lum qilamiz. Iltimos, dars qolishining sababini aniqlashtirish uchun biz bilan bog'laning."
+    ru: 'Уважаемый(ая) {ParentName}! Сегодня {StudentRef} отсутствует на занятии без предупреждения. Пожалуйста, свяжитесь со мной для уточнения причины пропуска.',
+    uz: "Hurmatli {ParentName}! {StudentRef} bugun darsga ogohlantirishsiz kelmadi. Iltimos, dars qoldirish sababini aniqlashtirish uchun men bilan bog'laning."
   },
   overdue: {
-    ru: 'Уважаемый(ая) {ParentName}! Напоминаем Вам, что по {StudentName} зафиксирована задержка ежемесячной оплаты обучения на {Value}. Убедительно просим Вас произвести оплату в самое ближайшее время. Если Вы уже внесли оплату, просим Вас просто проигнорировать данное автоматическое извещение. Благодарим за понимание!',
-    uz: "Hurmatli {ParentName}! Farzandingiz {StudentName} ning oylik o'quv to‘lovi {Value} ga kechikayotganini eslatib o‘tamiz. To‘lovni yaqin muddatda amalga oshirishingizni so‘raymiz. Agar to‘lovni amalga oshirgan bo‘lsangiz, ushbu xabarga e’tibor bermasligingizni so‘raymiz. Tushunganingiz uchun rahmat!"
+    ru: 'Уважаемый(ая) {ParentName}! Напоминаю, что по оплате за обучение ({StudentRef}) возникла задолженность в размере {Value}. Пожалуйста, произведите оплату при первой возможности. Если оплата уже внесена, просто проигнорируйте это сообщение.',
+    uz: "Hurmatli {ParentName}! {StudentRef}ning o'quv to‘lovi {Value} ga kechikayotganini eslatib o‘taman. To‘lovni eng yaqin fursatda amalga oshirishingizni so‘rayman. Agar to‘lov qilingan bo‘lsa, ushbu xabarni e'tiborsiz qoldiring."
   },
-  default: {
-    ru: 'Уважаемый(ая) {ParentName}! Сообщение касательно {StudentName}: {Value}',
-    uz: 'Hurmatli {ParentName}! {StudentName} haqida xabar: {Value}'
+  custom: {
+    ru: 'Уважаемый(ая) {ParentName}! Обращаюсь к Вам по поводу: {StudentRef}. {Value}',
+    uz: 'Hurmatli {ParentName}! {StudentRef} bo\'yicha murojaat qilmoqdaman. {Value}'
   }
 };
 
@@ -37,7 +38,6 @@ export function ComplaintModal() {
     closeComplaintModal, 
     complaintStudentId,
     students,
-    templates,
     macrodroidUrl,
     openAlert
   } = useStore();
@@ -52,22 +52,39 @@ export function ComplaintModal() {
 
   useEffect(() => {
     if (!student) return;
-    const template = templates.find(t => t.category === category && t.language === lang);
     
-    let text = '';
-    if (!template) {
-      const categoryTemplates = TEMPLATE_FALLBACKS[category] || TEMPLATE_FALLBACKS.default;
-      text = categoryTemplates[lang] || categoryTemplates.ru;
-    } else {
-      text = template.template_text;
+    const categoryTemplates = TEMPLATES[category] || TEMPLATES.custom;
+    let text = categoryTemplates[lang] || categoryTemplates.ru;
+    
+    const parentName = student.parents?.full_name || '[Имя Родителя]';
+    const studentName = student.full_name || '[Имя Ученика]';
+    const role = student.parents?.role?.trim().toLowerCase() || '';
+
+    // ==========================================
+    // ЛОГИКА ОПРЕДЕЛЕНИЯ РОДСТВА
+    // ==========================================
+    let studentRef = studentName; // По умолчанию (Брат, Сестра, Тетя, Дядя и т.д.) просто имя
+
+    if (lang === 'ru') {
+      if (role === 'мама' || role === 'папа') {
+        studentRef = `Ваш ребенок ${studentName}`;
+      } else if (role === 'бабушка' || role === 'дедушка') {
+        studentRef = `Ваш внук/внучка ${studentName}`;
+      }
+    } else if (lang === 'uz') {
+      if (role === 'мама' || role === 'папа') {
+        studentRef = `Farzandingiz ${studentName}`;
+      } else if (role === 'бабушка' || role === 'дедушка') {
+        studentRef = `Nabirangiz ${studentName}`;
+      }
     }
     
-    const parentName = student.parents?.full_name || '[Родитель]';
-    const studentName = student.full_name || '[Ученик]';
-    
+    // Заменяем переменные в тексте
     text = text.replace('{ParentName}', parentName)
-               .replace('{StudentName}', studentName);
+               .replace('{StudentRef}', studentRef)
+               .replace('{StudentName}', studentName); // На всякий случай оставляем
 
+    // Логика обработки склонений и нулевых значений
     if (category === 'overdue') {
       const days = parseInt(paramValue) || 5;
       const getDaysWord = (d: number) => {
@@ -78,42 +95,28 @@ export function ComplaintModal() {
         if (mod10 >= 2 && mod10 <= 4) return 'дня';
         return 'дней';
       };
-      
       const daysStr = lang === 'ru' ? `${days} ${getDaysWord(days)}` : `${days} kunlik`;
       text = text.replace('{Value}', daysStr);
     } else if (category === 'homework' && (paramValue === '0' || paramValue === '0%' || !paramValue.trim())) {
       if (lang === 'ru') {
-        text = text.replace(/было выполнено лишь на \{Value\}%?/gi, 'вообще не было выполнено');
-        text = text.replace(/было выполнено на \{Value\}%?/gi, 'вообще не было выполнено');
-        text = text.replace(/выполнено лишь на \{Value\}%?/gi, 'вообще не было выполнено');
-        text = text.replace(/выполнено на \{Value\}%?/gi, 'вообще не было выполнено');
-        
-        if (text.includes('{Value}')) {
-          text = text.replace(/\{Value\}%/g, '0% (вообще не выполнено)');
-          text = text.replace(/\{Value\}/g, 'вообще не выполнено');
-        }
+        text = text.replace(/выполнил\(а\) домашнее задание лишь на \{Value\}%?/gi, 'вообще не выполнил(а) домашнее задание');
+        text = text.replace(/\{Value\}%/gi, '0%');
       } else {
-        text = text.replace(/bor-yo‘g‘i \{Value\}% ga bajarganini/gi, 'umuman bajarmaganini');
-        text = text.replace(/\{Value\}% ga bajarganini/gi, 'umuman bajarmaganini');
-        if (text.includes('{Value}')) {
-          text = text.replace(/\{Value\}%/g, '0% (umuman bajarmagan)');
-          text = text.replace(/\{Value\}/g, 'umuman bajarmagan');
-        }
+        text = text.replace(/uy vazifasini bor-yo‘g‘i \{Value\}% ga bajardi/gi, 'uy vazifasini umuman bajarmadi');
+        text = text.replace(/\{Value\}%/gi, '0%');
       }
     } else {
       text = text.replace(/\{Value\}/g, paramValue || '0');
     }
 
     const signature = lang === 'ru' 
-      ? '\n\nС уважением, преподаватель английского языка Хикматов Алихон Акбаралиевич из учебного центра Everest.'
+      ? '\n\nС уважением, преподаватель английского языка Хикматов Алихон Акбаралиевич (Everest).'
       : "\n\nHurmat bilan, Everest o'quv markazining ingliz tili o'qituvchisi Xikmatov Alixon Akbaraliyevich.";
 
     text = text + signature;
-               
     setPreview(text);
-  }, [lang, category, paramValue, student, templates]);
+  }, [lang, category, paramValue, student]);
 
-  // Reset states when opened
   useEffect(() => {
     if (isComplaintModalOpen) {
       setLang('ru');
@@ -122,18 +125,12 @@ export function ComplaintModal() {
     }
   }, [isComplaintModalOpen]);
 
-  // Dynamically update default values when switching category
   useEffect(() => {
     if (!isComplaintModalOpen) return;
-    if (category === 'overdue') {
-      setParamValue('5');
-    } else if (category === 'homework') {
-      setParamValue('0');
-    } else if (category === 'lateness') {
-      setParamValue('15');
-    } else {
-      setParamValue('');
-    }
+    if (category === 'overdue') setParamValue('5');
+    else if (category === 'homework') setParamValue('0');
+    else if (category === 'lateness') setParamValue('15');
+    else setParamValue('');
   }, [category, isComplaintModalOpen]);
 
   const handleSend = async () => {
@@ -145,7 +142,6 @@ export function ComplaintModal() {
     
     setIsSending(true);
     try {
-      // Send request via internal server API to bypass browser CORS/Adblockers
       const res = await fetch('/api/send-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,12 +152,10 @@ export function ComplaintModal() {
         })
       });
 
-      if (!res.ok) {
-        throw new Error('Server request failed');
-      }
+      if (!res.ok) throw new Error('Server request failed');
       
       closeComplaintModal();
-      openAlert('Успешно', 'Запрос отправлен!\n\nВАЖНО: Если SMS отправляются только при открытии приложения MacroDroid на телефоне:\n1. Настройки телефона -> Приложения -> MacroDroid\n2. Батарея / Контроль активности -> Выбрать "Нет ограничений"\n3. Разрешить фоновую работу и автозапуск.', 'success');
+      openAlert('Успешно', 'Запрос отправлен!\n\nВАЖНО: Убедитесь, что MacroDroid имеет разрешения на фоновую работу и автозапуск.', 'success');
     } catch (e) {
       console.error(e);
       openAlert('Ошибка отправки', 'Не удалось связаться с сервером MacroDroid. Проверьте адрес Webhook.', 'error');
@@ -190,9 +184,9 @@ export function ComplaintModal() {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-lg font-medium text-primary tracking-tight flex items-center gap-2">
-                  Отправка Жалобы
+                  Отправка Уведомления
                 </h3>
-                <p className="text-xs text-secondary mt-1">Формирование уведомления родителю</p>
+                <p className="text-xs text-secondary mt-1">Формирование сообщения родителю</p>
               </div>
               <button onClick={closeComplaintModal} className="text-secondary hover:text-primary transition-colors p-1">
                 <X className="w-5 h-5" />
@@ -208,7 +202,7 @@ export function ComplaintModal() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-secondary uppercase tracking-widest mb-1.5">Родитель</label>
+                  <label className="block text-[11px] font-medium text-secondary uppercase tracking-widest mb-1.5">Получатель ({student.parents?.role || 'Нет роли'})</label>
                   <div className="bg-background border border-border rounded-lg px-4 py-3 text-sm text-secondary truncate">
                     {student.parents?.full_name || 'Не указан'}
                   </div>
@@ -263,15 +257,21 @@ export function ComplaintModal() {
                 )}
                 {category === 'custom' && (
                   <div className="space-y-1.5">
-                    <label className="block text-[11px] font-medium text-secondary uppercase tracking-widest">Детали нарушения</label>
-                    <textarea rows={3} value={paramValue} onChange={e => setParamValue(e.target.value)} placeholder="Описание проблемы..." className="w-full bg-background border border-border focus:border-secondary focus:outline-none rounded-lg px-4 py-3 text-sm text-primary resize-none" />
+                    <label className="block text-[11px] font-medium text-secondary uppercase tracking-widest">Свой текст сообщения</label>
+                    <textarea rows={3} value={paramValue} onChange={e => setParamValue(e.target.value)} placeholder="Напишите, что нужно передать..." className="w-full bg-background border border-border focus:border-secondary focus:outline-none rounded-lg px-4 py-3 text-sm text-primary resize-none" />
+                  </div>
+                )}
+                {category === 'absence_reason' && (
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-medium text-secondary uppercase tracking-widest">Причина (укажите кратко)</label>
+                    <input type="text" value={paramValue} onChange={e => setParamValue(e.target.value)} placeholder="Например: по состоянию здоровья" className="w-full bg-background border border-border focus:border-secondary focus:outline-none rounded-lg px-4 py-3 text-sm text-primary" />
                   </div>
                 )}
               </div>
 
               <div className="bg-background rounded-lg border border-border p-4 space-y-2 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-secondary opacity-50" />
-                <span className="text-[9px] font-bold text-secondary uppercase tracking-widest ml-2 block">Превью сообщения:</span>
+                <span className="text-[9px] font-bold text-secondary uppercase tracking-widest ml-2 block">Итоговое сообщение:</span>
                 <p className="text-sm font-newsreader italic text-primary/80 leading-relaxed whitespace-pre-wrap ml-2">
                   {preview}
                 </p>
@@ -288,10 +288,10 @@ export function ComplaintModal() {
               </button>
               <button 
                 onClick={handleSend} 
-                disabled={isSending || preview === 'Шаблон не найден.' || !student.parents}
+                disabled={isSending || !student.parents}
                 className="w-1/2 bg-accent hover:bg-accent-hover text-background text-sm font-medium py-3 rounded-full transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSending ? <motion.div className="w-4 h-4 border-2 border-background border-t-transparent rounded-full animate-spin" /> : <><Send className="w-4 h-4" /> Отправить</>}
+                {isSending ? <motion.div className="w-4 h-4 border-2 border-background border-t-transparent rounded-full animate-spin" /> : <><Send className="w-4 h-4" /> Отправить SMS</>}
               </button>
             </div>
           </motion.div>

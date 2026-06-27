@@ -647,6 +647,8 @@ export function AdminTab() {
                         <option value="Брат">Брат</option>
                         <option value="Бабушка">Бабушка</option>
                         <option value="Дедушка">Дедушка</option>
+                        <option value="Тетя">Тетя</option>
+                        <option value="Дядя">Дядя</option>
                       </select>
                     </div>
 

@@ -1,6 +1,7 @@
+// store/useStore.ts
 import { create } from 'zustand';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Group, Parent, Student, Template } from '@/types';
+import { Group, Parent, Student } from '@/types'; // Убрали Template
 
 function cleanUrl(url: string): string {
   if (!url) return '';
@@ -19,56 +20,41 @@ function cleanKey(key: string): string {
   return key.trim();
 }
 
-
 interface AppState {
-  // Config
   supabaseUrl: string;
   supabaseKey: string;
   macrodroidUrl: string;
   isConfigured: boolean;
   supabaseClient: SupabaseClient | null;
   
-  // Data
   groups: Group[];
   parents: Parent[];
   students: Student[];
-  templates: Template[];
+  // Убрали templates: Template[];
+  
   isLoading: boolean;
   connectionError: string | null;
-  
-  // App State Focus
   activeTab: 'workspace' | 'admin';
   selectedGroupId: string | null;
-  
-  // Modals
   isComplaintModalOpen: boolean;
   complaintStudentId: string | null;
-
-  // Alerts
   alertDialog: { isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' };
+  
   openAlert: (title: string, message: string, type?: 'success' | 'error' | 'info') => void;
   closeAlert: () => void;
-  
-  // Actions
   loadConfig: () => Promise<void>;
-  
   setActiveTab: (tab: 'workspace' | 'admin') => void;
   setSelectedGroupId: (id: string | null) => void;
-  
   openComplaintModal: (studentId: string) => void;
   closeComplaintModal: () => void;
-  
   fetchData: () => Promise<void>;
   
-  // Admin Operations
   addGroup: (name: string) => Promise<void>;
   updateGroup: (id: string, name: string) => Promise<void>;
   deleteGroup: (id: string) => Promise<void>;
-  
   addParent: (name: string, phone: string, role?: string) => Promise<void>;
   updateParent: (id: string, name: string, phone: string, role?: string) => Promise<void>;
   deleteParent: (id: string) => Promise<void>;
-  
   addStudent: (name: string, groupId: string, parentId: string, firstArrivalDate?: string, firstPaymentDate?: string) => Promise<void>;
   updateStudent: (id: string, name: string, groupId: string, parentId: string, firstArrivalDate?: string, firstPaymentDate?: string) => Promise<void>;
   deleteStudent: (id: string) => Promise<void>;
@@ -84,13 +70,11 @@ export const useStore = create<AppState>((set, get) => ({
   groups: [],
   parents: [],
   students: [],
-  templates: [],
   isLoading: false,
   connectionError: null,
 
   activeTab: 'workspace',
   selectedGroupId: null,
-
   isComplaintModalOpen: false,
   complaintStudentId: null,
 
@@ -105,7 +89,6 @@ export const useStore = create<AppState>((set, get) => ({
       let key = '';
       let macroUrl = '';
 
-      // 1. Fetch secure config from environment via Server endpoint
       try {
         const res = await fetch('/api/config');
         if (res.ok) {
@@ -126,7 +109,6 @@ export const useStore = create<AppState>((set, get) => ({
       let client = null;
       if (isConfigured) {
         client = createClient(sanitizedUrl, sanitizedKey);
-        console.log("Supabase Client initialized successfully.");
       }
 
       set({ 
@@ -146,7 +128,6 @@ export const useStore = create<AppState>((set, get) => ({
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSelectedGroupId: (id) => set({ selectedGroupId: id }),
-
   openComplaintModal: (studentId) => set({ isComplaintModalOpen: true, complaintStudentId: studentId }),
   closeComplaintModal: () => set({ isComplaintModalOpen: false, complaintStudentId: null }),
 
@@ -156,23 +137,21 @@ export const useStore = create<AppState>((set, get) => ({
 
     set({ isLoading: true, connectionError: null });
     try {
-      const [groupsRes, parentsRes, studentsRes, templatesRes] = await Promise.all([
+      // Больше не загружаем templates, только основные данные
+      const [groupsRes, parentsRes, studentsRes] = await Promise.all([
         supabaseClient.from('groups').select('*').order('name'),
         supabaseClient.from('parents').select('*').order('full_name'),
-        supabaseClient.from('students').select('*, groups(*), parents(*)').order('full_name'),
-        supabaseClient.from('templates').select('*')
+        supabaseClient.from('students').select('*, groups(*), parents(*)').order('full_name')
       ]);
 
       if (groupsRes.error) throw groupsRes.error;
       if (parentsRes.error) throw parentsRes.error;
       if (studentsRes.error) throw studentsRes.error;
-      if (templatesRes.error) throw templatesRes.error;
 
       set({
         groups: groupsRes.data || [],
         parents: parentsRes.data || [],
         students: studentsRes.data || [],
-        templates: templatesRes.data || [],
         isLoading: false,
         connectionError: null
       });
@@ -186,7 +165,6 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  // Admin Actions
   addGroup: async (name) => {
     const { supabaseClient } = get();
     if (!supabaseClient) return;
@@ -206,19 +184,16 @@ export const useStore = create<AppState>((set, get) => ({
     if (selectedGroupId === id) set({ selectedGroupId: null });
     get().fetchData();
   },
-
   addParent: async (name, phone, role) => {
     const { supabaseClient } = get();
     if (!supabaseClient) return;
-    const record: any = { full_name: name, phone_number: phone, role };
-    await supabaseClient.from('parents').insert([record]);
+    await supabaseClient.from('parents').insert([{ full_name: name, phone_number: phone, role }]);
     get().fetchData();
   },
   updateParent: async (id, name, phone, role) => {
     const { supabaseClient } = get();
     if (!supabaseClient) return;
-    const record: any = { full_name: name, phone_number: phone, role };
-    await supabaseClient.from('parents').update(record).eq('id', id);
+    await supabaseClient.from('parents').update({ full_name: name, phone_number: phone, role }).eq('id', id);
     get().fetchData();
   },
   deleteParent: async (id) => {
@@ -227,35 +202,22 @@ export const useStore = create<AppState>((set, get) => ({
     await supabaseClient.from('parents').delete().eq('id', id);
     get().fetchData();
   },
-
   addStudent: async (name, groupId, parentId, firstArrivalDate, firstPaymentDate) => {
     const { supabaseClient } = get();
     if (!supabaseClient) return;
-
-    const record: any = {
-      full_name: name,
-      group_id: groupId,
-      parent_id: parentId,
-      first_arrival_date: firstArrivalDate || null,
-      first_payment_date: firstPaymentDate || null
-    };
-
-    await supabaseClient.from('students').insert([record]);
+    await supabaseClient.from('students').insert([{
+      full_name: name, group_id: groupId, parent_id: parentId,
+      first_arrival_date: firstArrivalDate || null, first_payment_date: firstPaymentDate || null
+    }]);
     get().fetchData();
   },
   updateStudent: async (id, name, groupId, parentId, firstArrivalDate, firstPaymentDate) => {
     const { supabaseClient } = get();
     if (!supabaseClient) return;
-
-    const record: any = {
-      full_name: name,
-      group_id: groupId,
-      parent_id: parentId,
-      first_arrival_date: firstArrivalDate || null,
-      first_payment_date: firstPaymentDate || null
-    };
-
-    await supabaseClient.from('students').update(record).eq('id', id);
+    await supabaseClient.from('students').update({
+      full_name: name, group_id: groupId, parent_id: parentId,
+      first_arrival_date: firstArrivalDate || null, first_payment_date: firstPaymentDate || null
+    }).eq('id', id);
     get().fetchData();
   },
   deleteStudent: async (id) => {
